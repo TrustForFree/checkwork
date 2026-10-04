@@ -1,0 +1,34 @@
+name = "checkwork"
+main = "src/worker.js"
+# رابط المشروع الرسمي على Pages: https://checkwork-buy.pages.dev
+# نطاق workers.dev معطّل حتى لا يظهر اسم الحساب في الرابط
+workers_dev = false
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ---------- Static assets (frontend) ----------
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# مرّر كل الطلبات عبر الـ Worker لتطبيق ترويسات الأمان وكوكي CSRF
+run_worker_first = true
+
+# ---------- D1 ----------
+[[d1_databases]]
+binding = "DB"
+database_name = "checkwork-db"
+database_id = "adda94eb-361d-441d-a274-6235362aefd8"
+
+# ---------- Vars ----------
+[vars]
+WORKSPACE_NAME = "منصّة إدارة الأعمال"
+SESSION_DAYS = "14"
+LOGIN_MAX_ATTEMPTS = "6"
+LOGIN_LOCK_MINUTES = "10"
+
+[observability]
+enabled = true
+# ---------- تنظيف الجلسات وسجل النشاط ----------
+[triggers]
+crons = ["17 3 * * *"]

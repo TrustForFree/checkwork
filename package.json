@@ -1,0 +1,26 @@
+{
+  "name": "checkwork",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "منصة مصغرة لإدارة الأعمال والإنجاز — Cloudflare Workers + D1",
+  "scripts": {
+    "dev": "npm run build:pages && wrangler pages dev dist",
+    "build:pages": "node scripts/build-pages.mjs",
+    "deploy": "npm run build:pages && wrangler pages deploy dist --project-name checkwork --branch main",
+    "deploy:workers": "wrangler deploy",
+    "db:local": "wrangler d1 execute checkwork-db --local --file=./schema.sql",
+    "db:remote": "wrangler d1 execute checkwork-db --remote --file=./schema.sql",
+    "test": "node test/smoke.mjs",
+    "test:ui": "node test/ui.mjs",
+    "test:all": "node test/smoke.mjs && node test/ui.mjs",
+    "clean:db": "wrangler d1 execute checkwork-db --remote --command \"DELETE FROM activity; DELETE FROM task_notes; DELETE FROM tasks; DELETE FROM todos; DELETE FROM members; DELETE FROM workspaces; DELETE FROM sessions; DELETE FROM users;\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

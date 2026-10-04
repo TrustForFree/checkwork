@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="منصة مصغّرة لإدارة الأعمال والإنجاز — مهام وقوائم TODO خاصة وعامة لبيئات العمل.">
+<title>منصّة إدارة الأعمال</title>
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<!-- ═══════════ شاشة التحميل ═══════════ -->
+<div id="splash" class="splash">
+  <div class="splash-mark" aria-hidden="true">
+    <svg viewBox="0 0 48 48" width="56" height="56"><use href="#i-logo"></use></svg>
+  </div>
+  <p class="splash-text">جارٍ التحميل…</p>
+</div>
+
+<!-- ═══════════ صفحة الدخول / التسجيل ═══════════ -->
+<main id="auth-page" class="auth-page" hidden>
+  <div class="auth-grid" aria-hidden="true"></div>
+
+  <section class="auth-brand">
+    <div class="auth-brand-inner">
+      <div class="logo-lg" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="64" height="64"><use href="#i-logo"></use></svg>
+      </div>
+      <h1 class="auth-brand-title">منصّة إدارة الأعمال</h1>
+      <p class="auth-brand-sub">سجّل حسابك، أنشئ بيئة عملك، وادعُ أفراد فريقك.</p>
+      <ul class="auth-features">
+        <li><svg class="ico" aria-hidden="true"><use href="#i-shield"></use></svg><span>تسجيل ذاتي باسم مستخدم وكلمة مرور — بلا انتظار موافقة</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-users"></use></svg><span>الدعوة عبر اسم المستخدم، والعضو هو من يوافق على الانضمام</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-layers"></use></svg><span>كل فرد يبني بيئات عمل خاصة به ويديرها كما يريد</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-task"></use></svg><span>إسناد المهام، قراءتها، وإنجازها مع سجل كامل</span></li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-checklist"></use></svg><span>قوائم TODO خاصة بك أو مرئية لبيئة عملك بالكامل</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-card">
+      <div class="auth-mobile-brand">
+        <div class="logo-md" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="40" height="40"><use href="#i-logo"></use></svg>
+        </div>
+        <span>منصّة إدارة الأعمال</span>
+      </div>
+
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab is-active" id="tab-login" role="tab" aria-selected="true" type="button">تسجيل الدخول</button>
+        <button class="auth-tab" id="tab-register" role="tab" aria-selected="false" type="button">حساب جديد</button>
+      </div>
+
+      <!-- تسجيل الدخول -->
+      <form id="form-login" class="auth-form" autocomplete="on">
+        <h2 class="auth-title">تسجيل الدخول</h2>
+        <p class="auth-hint">أدخل بيانات حسابك للمتابعة</p>
+
+        <div class="field">
+          <label for="lg-user">اسم المستخدم</label>
+          <input id="lg-user" name="username" required dir="ltr" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="lg-pass">كلمة المرور</label>
+          <div class="pw-wrap">
+            <input id="lg-pass" name="password" type="password" required dir="ltr" placeholder="••••••" autocomplete="current-password">
+            <button type="button" class="pw-toggle" data-pw="lg-pass" aria-label="إظهار كلمة المرور">
+              <svg class="ico eye-on" aria-hidden="true"><use href="#i-eye"></use></svg>
+              <svg class="ico eye-off" aria-hidden="true"><use href="#i-eyeoff"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="alert alert-error" data-error hidden></div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">دخول</button>
+
+        <div id="login-forced" class="notice notice-warn" hidden>
+          <svg class="ico" aria-hidden="true"><use href="#i-alert"></use></svg>
+          <span>تم تغيير كلمة المرور. يُرجى الدخول بكلمة المرور الجديدة.</span>
+        </div>
+      </form>
+
+      <!-- التسجيل الذاتي -->
+      <form id="form-register" class="auth-form" hidden autocomplete="off">
+        <h2 class="auth-title">إنشاء حساب جديد</h2>
+        <p class="auth-hint">احسبك الخاص — وتُنشأ لك بيئة عمل خاصة تلقائياً</p>
+
+        <div class="field">
+          <label for="rg-name">الاسم الكامل</label>
+          <input id="rg-name" name="fullName" required minlength="2" maxlength="80" placeholder="مثال: أحمد المنصوري" autocomplete="name">
+        </div>
+
+        <div class="field">
+          <label for="rg-user">اسم المستخدم</label>
+          <div class="pw-wrap">
+            <input id="rg-user" name="username" required pattern="[a-z0-9._\-]{3,32}" dir="ltr"
+                   placeholder="ahmad" autocomplete="username" autocapitalize="none" spellcheck="false">
+            <span class="user-state" id="user-state" aria-live="polite"></span>
+          </div>
+          <small class="hint">أحرف إنجليزية صغيرة وأرقام و . _ - فقط — سيستخدمه المشرف لدعوتك</small>
+        </div>
+
+        <div class="field">
+          <label for="rg-pass">كلمة المرور</label>
+          <div class="pw-wrap">
+            <input id="rg-pass" name="password" type="password" required minlength="6" dir="ltr" placeholder="••••••" autocomplete="new-password">
+            <button type="button" class="pw-toggle" data-pw="rg-pass" aria-label="إظهار كلمة المرور">
+              <svg class="ico eye-on" aria-hidden="true"><use href="#i-eye"></use></svg>
+              <svg class="ico eye-off" aria-hidden="true"><use href="#i-eyeoff"></use></svg>
+            </button>
+          </div>
+          <small class="hint">6 أحرف على الأقل</small>
+        </div>
+        <div class="field">
+          <label for="rg-pass2">تأكيد كلمة المرور</label>
+          <input id="rg-pass2" name="password2" type="password" required minlength="6" dir="ltr" placeholder="••••••" autocomplete="new-password">
+        </div>
+
+        <details class="fold">
+          <summary>إنشاء بيئة عمل باسم مخصّص (اختياري)</summary>
+          <div class="fold-body">
+            <div class="field">
+              <label for="rg-ws">اسم بيئة العمل</label>
+              <input id="rg-ws" name="workspaceName" maxlength="80" placeholder="مثال: شركة النور للمقاولات">
+            </div>
+            <div class="field">
+              <label for="rg-wst">وصف مختصر</label>
+              <input id="rg-wst" name="workspaceTagline" maxlength="120" placeholder="مثال: إدارة مشاريع البناء">
+            </div>
+          </div>
+        </details>
+
+        <div class="alert alert-error" data-error hidden></div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">إنشاء الحساب</button>
+        <p class="auth-note">
+          بإنشائك حساباً فأنت صاحب بيئتك الأولى، ويمكنك دعوة غيرك عبر أسماء المستخدمين.
+        </p>
+      </form>
+
+      <p class="auth-foot">منصّة مصغّرة لإدارة الأعمال — <span id="app-version">v2.0</span></p>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════════ التطبيق ═══════════ -->
+<div id="app" class="app" hidden>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <button class="ws-switch" id="btn-ws" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <div class="logo-sm" id="ws-avatar" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="34" height="34"><use href="#i-logo"></use></svg>
+        </div>
+        <div class="sb-brand-text">
+          <strong id="ws-name">—</strong>
+          <span id="ws-role">—</span>
+        </div>
+        <svg class="ico sb-chevron" aria-hidden="true"><use href="#i-chevron"></use></svg>
+      </button>
+      <button class="sb-close icon-btn" id="sb-close" aria-label="إغلاق القائمة">
+        <svg class="ico" aria-hidden="true"><use href="#i-close"></use></svg>
+      </button>
+    </div>
+
+    <div class="ws-menu" id="ws-menu" hidden role="listbox" aria-label="بيئات العمل"></div>
+
+    <nav class="sb-nav" id="sb-nav" aria-label="التنقل الرئيسي"></nav>
+
+    <div class="sb-invite" id="sb-invite" hidden></div>
+
+    <div class="sb-user">
+      <div class="avatar" id="sb-avatar">؟</div>
+      <div class="sb-user-text">
+        <strong id="sb-name">—</strong>
+        <span id="sb-role2">—</span>
+      </div>
+      <button class="icon-btn" id="btn-profile" aria-label="الملف الشخصي" title="الملف الشخصي">
+        <svg class="ico" aria-hidden="true"><use href="#i-gear"></use></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="sb-backdrop" id="sb-backdrop" hidden></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="btn-menu" aria-label="القائمة">
+        <svg class="ico" aria-hidden="true"><use href="#i-menu"></use></svg>
+      </button>
+      <div class="topbar-title">
+        <h1 id="page-title">لوحة التحكم</h1>
+        <p id="page-sub"></p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="btn-theme" aria-label="تبديل المظهر" title="تبديل المظهر">
+          <svg class="ico ico-light" aria-hidden="true"><use href="#i-moon"></use></svg>
+          <svg class="ico ico-dark" aria-hidden="true"><use href="#i-sun"></use></svg>
+        </button>
+        <button class="icon-btn" id="btn-quick-todo" aria-label="عنصر جديد" title="عنصر جديد">
+          <svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg>
+        </button>
+        <button class="icon-btn" id="btn-logout" aria-label="تسجيل الخروج" title="تسجيل الخروج">
+          <svg class="ico" aria-hidden="true"><use href="#i-logout"></use></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="page-wrap" id="page-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══════════ نافذة منبثقة ═══════════ -->
+<div class="modal-root" id="modal-root" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <header class="modal-head">
+      <h2 id="modal-title">—</h2>
+      <button class="icon-btn" data-close aria-label="إغلاق">
+        <svg class="ico" aria-hidden="true"><use href="#i-close"></use></svg>
+      </button>
+    </header>
+    <div class="modal-body" id="modal-body"></div>
+    <footer class="modal-foot" id="modal-foot"></footer>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<!-- ═══════════ مكتبة الأيقونات ═══════════ -->
+<svg style="display:none" aria-hidden="true">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 48 48">
+      <rect x="3" y="3" width="42" height="42" rx="11" fill="url(#lg)"/>
+      <path d="M15 25.5l6 6 13-14" stroke="#fff" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="48" y2="48">
+        <stop offset="0" stop-color="#4f7cff"/><stop offset="1" stop-color="#22c55e"/>
+      </linearGradient></defs>
+    </symbol>
+    <symbol id="i-dash" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z"/></symbol>
+    <symbol id="i-task" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></symbol>
+    <symbol id="i-checklist" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12l1.5 1.5L13 11m-4 6l1.5 1.5L13 15"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 20h5v-1a4 4 0 00-3-3.87M9 20H4v-1a5 5 0 019.33-2.68M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 4a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM8 14a4 4 0 00-3 3.87V20"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm19 8v-6m-3 3h6"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-5 3 3 5-7"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 7v5l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 3v6h6M3.05 13A9 9 0 106 5.3L3 9m9 2v4l3 2 4-4-3-3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.9 1.2V21a2 2 0 010-4h.1A1.65 1.65 0 007 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 002.6 14H2a2 2 0 110-4h.1A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 2.6V2a2 2 0 014 0v.1a1.65 1.65 0 002.9 1.4l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0021.4 9H22a2 2 0 110 4h-.1a1.65 1.65 0 00-1.51 1z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7zm10 3a3 3 0 100-6 3 3 0 000 6z"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M9.9 5.2A9.9 9.9 0 0112 5c6.4 0 10 7 10 7a17.6 17.6 0 01-2.8 3.9M6.6 6.6A17.7 17.7 0 002 12s3.6 7 10 7a9.8 9.8 0 005.4-1.6M2 2l20 20M9.9 9.9a3 3 0 004.2 4.2"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" /><path d="M4 6l8 5 8-5"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2m-3 3l2.5 2.5M15 6l2.5 2.5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-4a2 2 0 012-2h16a2 2 0 012 2v4a2 2 0 01-2 2h-2M6 14h12v7H6z"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M20.5 9a9 9 0 00-14.9-3.4L1 10m22 4l-4.6 4.4A9 9 0 013.5 15"/></symbol>
+    <symbol id="i-eye-view" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18 15 15 0 010-18z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></symbol>
+    <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M1 1l22 22M16.7 12.6a6 6 0 00-2.7-1.6M5 12.5a10 10 0 015-2.4M19 12.5a10 10 0 00-3-2M8.5 16a5 5 0 017 0M12 20h.01M2 8.8a15 15 0 014-2.5m12-1a15 15 0 013.4 2.2"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14m-6-6l6 6-6 6"/></symbol>
+  </defs>
+</svg>
+
+<script src="/js/app.js" type="module"></script>
+</body>
+</html>

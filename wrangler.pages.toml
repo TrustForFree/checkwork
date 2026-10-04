@@ -1,0 +1,14 @@
+name = "checkwork"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "checkwork-db"
+database_id = "adda94eb-361d-441d-a274-6235362aefd8"
+
+[vars]
+SESSION_DAYS = "14"
+LOGIN_MAX_ATTEMPTS = "6"
+LOGIN_LOCK_MINUTES = "10"
