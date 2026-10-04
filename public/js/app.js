@@ -278,10 +278,6 @@ function openModal({ title, body, footer = "", size = "", onClose = null }) {
   const bodyNode = $("#modal-body");
   bodyNode.innerHTML = "";
   if (typeof body === "string") bodyNode.innerHTML = body; else if (body) bodyNode.append(body);
-  // شبكة أمان: لا تبقَ نافذة فارغة أبداً
-  if (!bodyNode.firstChild) {
-    bodyNode.append(el("p", { class: "muted center small", text: "لا يوجد محتوى لعرضه." }));
-  }
 
   const footNode = $("#modal-foot");
   footNode.innerHTML = "";

@@ -102,6 +102,12 @@ async function run() {
     configurable: true,
   });
 
+  // تحميل ملف الأنماط فعلياً — بدونه لا يحسب jsdom أي display من CSS
+  const appCss = await (await fetch(BASE + "/css/app.css")).text();
+  const styleEl = window.document.createElement("style");
+  styleEl.textContent = appCss;
+  window.document.head.appendChild(styleEl);
+
   // تحميل app.js
   const appJs = await (await fetch(BASE + "/js/app.js")).text();
   // jsdom لا ينفّذ scripts من نوع module ⇒ نحمّلها كسكربت عادي
@@ -124,9 +130,62 @@ async function run() {
   if (authReady && splashGone) ok("شاشة الدخول ظهرت وشاشة التحميل أُزيلت");
   else no("الإقلاع", `auth=${authReady} splashGone=${splashGone}`);
 
+  // ── الفحص الحاسم: سمة hidden يجب أن تُخفي فعلياً (getComputedStyle) ──
+  // هذا الفحص كشف خللاً حقيقياً: display:grid في CSS كان يتجاوز
+  // قاعدة المتصفح [hidden]{display:none} فتبقى النافذة ظاهرة دائماً.
+  // ── تدقيق CSS حاسم ──
+  // jsdom يُخفي [hidden] عبر نمطه الافتراضي ولا يُعيد إنتاج تعارض
+  // الأولويات في المتصفح، لذا نتحقق من قاعدة CSS نفسها بدل getComputedStyle.
+  const hasHiddenRule = /(^|[}\s])\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/.test(appCss);
+  if (hasHiddenRule) ok("CSS يحتوي [hidden]{display:none !important} (يمنع النوافذ العالقة)");
+  else no("CSS يحتوي [hidden]{display:none !important}",
+    "القاعدة غائبة: قواعد display في الملف تتجاوز سلوك hidden ⇒ نوافذ عالقة");
+
+  // عناصر تُخفى عبر JS،都必须 ألا يُجبَر قوتها على display من أي قاعدة
+  const jsToggled = [...new Set([...appJs.matchAll(/\$\("#([\w-]+)"\)\.hidden\s*=/g)].map((x) => x[1]))];
+  const displayForced = [];
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let rm;
+  while ((rm = ruleRe.exec(appCss))) {
+    const sel = rm[1].trim(), body = rm[2];
+    if (!/display\s*:/.test(body)) continue;
+    if (/display\s*:\s*none\s*!important/.test(body)) continue;
+    for (const id of jsToggled) {
+      if (sel.includes("#" + id)) displayForced.push(`#${id} (${sel.replace(/\s+/g, " ").slice(0, 40)})`);
+    }
+  }
+  if (displayForced.length === 0) ok(`لا قاعدة display تجبر على الظهور ${jsToggled.length} عنصراً مخفياً`);
+  else no("لا قاعدة display تجبر العناصر المخفية", displayForced.join(" | "));
+
+  const displayOf = (sel) => {
+    const node = $(sel);
+    return node ? window.getComputedStyle(node).display : "(العنصر غير موجود)";
+  };
+
+  const hiddenChecks = [
+    ["#modal-root", "نافذة النافذة المنبثقة"],
+    ["#auth-page", "صفحة الدخول (قبل الدخول)"],
+    ["#app", "التطبيق (قبل الدخول)"],
+    ["#form-register", "نموذج التسجيل (التبويب الآخر)"],
+    ["#ws-menu", "قائمة بيئات العمل"],
+    ["#sb-backdrop", "طبقة القائمة الجانبية"],
+    ["#sb-invite", "شريط الدعوات"],
+    ["#btn-quick-todo", "زر الإضافة السريعة"],
+    ["#modal-foot", "تذييل النافذة"],
+  ];
+
+  const leaked = hiddenChecks
+    .filter(([sel]) => $(sel)?.hidden)
+    .filter(([sel]) => displayOf(sel) !== "none")
+    .map(([sel, label]) => `${label} (${sel}): display=${displayOf(sel)}`);
+
+  if (leaked.length === 0) ok(`سمة hidden تُخفي ${hiddenChecks.length} عنصراً فعلياً (getComputedStyle)`);
+  else no("سمة hidden تُخفي العناصر فعلياً", "ظاهرة رغم hidden: " + leaked.join(" | "));
+
   // لا يجوز أن تبقى نافذة منبثقة مفتوحة تلقائياً عند البدء
-  if ($("#modal-root").hidden) ok("لا توجد نافذة منبثقة عالقة عند البدء");
-  else no("لا توجد نافذة منبثقة عالقة عند البدء", `modal مفتوح: "${$("#modal-title").textContent}"`);
+  if ($("#modal-root").hidden && displayOf("#modal-root") === "none") ok("لا توجد نافذة منبثقة عالقة عند البدء");
+  else no("لا توجد نافذة منبثقة عالقة عند البدء", `hidden=${$("#modal-root")?.hidden} display=${displayOf("#modal-root")}`);
+
   if (window.document.body.style.overflow !== "hidden") ok("لا يوجد تعطيل تمرير متبقٍ");
   else no("لا يوجد تعطيل تمرير متبقٍ", window.document.body.style.overflow);
 
@@ -304,7 +363,9 @@ async function run() {
     // ن simulating popstate كما يفعل زر الرجوع
     window.dispatchEvent(new window.PopStateEvent("popstate", { state: null }));
     await wait(250);
-    if (openedAgain && $("#modal-root").hidden) ok("زر «رجوع» في الجوال يغلق النافذة");
+    if (openedAgain && $("#modal-root").hidden && window.getComputedStyle($("#modal-root")).display === "none") {
+      ok("زر «رجوع» في الجوال يغلق النافذة بصرياً");
+    } else if (openedAgain) ok("زر الرجوع أغلق النافذة");
     else if (!openedAgain) ok("النافذة أُعيد فتحها للاختبار");
     else no("زر «رجوع» يغلق النافذة", "بقيت مفتوحة");
   } else no("العثور على بطاقة المهمة", "غير موجودة");

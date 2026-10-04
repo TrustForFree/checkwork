@@ -66,6 +66,14 @@
 
 * { box-sizing: border-box; }
 
+/* ───────────────────────────────────────────────────────────
+   مهم: سمة hidden يجب ان تخفي العنصر فعلياً.
+   قواعد display في هذا الملف (grid/flex) تتجاوز قاعدة المتصفح
+   [hidden]{display:none} لان انماط المطوّر اقوى من انماط المتصفح.
+   بدون هذا السطر تظل العناصر المخفية ظاهرة، فتظهر نوافذ عالقة.
+   ─────────────────────────────────────────────────────────── */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0; padding: 0;
   min-height: 100%;
@@ -863,7 +871,3 @@ table.tbl .actions { display: flex; gap: 5px; justify-content: flex-end; }
 
 /* نافذة بلا عنوان: لا تترك فراغاً غريباً */
 #modal-title.is-empty { color: var(--text-3); }
-.modal-body:empty::after {
-  content: "لا يوجد محتوى لعرضه.";
-  display: block; text-align: center; color: var(--text-3); font-size: 13px; padding: 18px 0;
-}
