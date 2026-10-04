@@ -257,16 +257,31 @@ const busy = (btn, on) => { if (btn) { btn.classList.toggle("is-busy", on); btn.
 const modalRoot = () => $("#modal-root");
 let modalOnClose = null, lastFocus = null;
 
+let modalPushedHistory = false;
+
+/**
+ * يفتح نافذة منبثقة.
+ * - يعطيها عنواناً دائماً (لا يمكن أن تبقى بلا عنوان)
+ * - يسجّل حالة في سجل التصفّح حتى يعمل زر «رجوع» في الهاتف كزر إغلاق
+ */
 function openModal({ title, body, footer = "", size = "", onClose = null }) {
   const root = modalRoot();
   lastFocus = document.activeElement;
   modalOnClose = onClose;
   $(".modal", root).className = "modal" + (size ? " modal-" + size : "");
-  $("#modal-title").textContent = title;
+
+  const titleNode = $("#modal-title");
+  const label = String(title ?? "").trim();
+  titleNode.textContent = label || "نافذة";
+  if (!label) titleNode.classList.add("is-empty"); else titleNode.classList.remove("is-empty");
 
   const bodyNode = $("#modal-body");
   bodyNode.innerHTML = "";
   if (typeof body === "string") bodyNode.innerHTML = body; else if (body) bodyNode.append(body);
+  // شبكة أمان: لا تبقَ نافذة فارغة أبداً
+  if (!bodyNode.firstChild) {
+    bodyNode.append(el("p", { class: "muted center small", text: "لا يوجد محتوى لعرضه." }));
+  }
 
   const footNode = $("#modal-foot");
   footNode.innerHTML = "";
@@ -274,23 +289,49 @@ function openModal({ title, body, footer = "", size = "", onClose = null }) {
   footNode.hidden = !footer;
 
   root.hidden = false;
+  root.classList.remove("is-stale");
   document.body.style.overflow = "hidden";
+
+  // زر الرجوع في الجوال يغلق النافذة
+  if (!modalPushedHistory) {
+    modalPushedHistory = true;
+    try { history.pushState({ cwModal: 1 }, ""); } catch { /* تجاهل */ }
+  }
+
   setTimeout(() => {
     const first = bodyNode.querySelector("input:not([type=hidden]), textarea, select, button");
     (first || $(".modal-head .icon-btn"))?.focus();
   }, 60);
 }
 
-function closeModal() {
+function closeModal(fromHistory = false) {
   const root = modalRoot();
-  if (root.hidden) return;
+  if (root.hidden) {
+    if (modalPushedHistory && !fromHistory) { modalPushedHistory = false; try { history.back(); } catch { /* تجاهل */ } }
+    return;
+  }
   root.hidden = true;
+  $("#modal-title").textContent = "";
   $("#modal-body").innerHTML = "";
   $("#modal-foot").innerHTML = "";
   document.body.style.overflow = "";
+
+  if (modalPushedHistory) {
+    modalPushedHistory = false;
+    if (!fromHistory) { try { history.back(); } catch { /* تجاهل */ } }
+  }
+
   const cb = modalOnClose; modalOnClose = null;
   lastFocus?.focus?.();
   cb?.();
+}
+
+/** أي نافذة لا knows شيئاً تُغلق — شبكة أمان ضد النوافذ العالقة */
+function purgeStaleModals() {
+  const root = modalRoot();
+  if (root.hidden) return;
+  if ($("#modal-body").firstChild) return;
+  closeModal();
 }
 
 function confirmDialog({ title, message, confirmText = "تأكيد", danger = false, icon: ic = "i-alert" }) {
@@ -324,6 +365,8 @@ async function boot() {
   if (booting) return;
   booting = true;
   try {
+    // إعادة تحميل قد تترك نافذة منبثقة مفتوحة ⇒ نغلقها
+    closeModal(true);
     const health = await api("/health").catch(() => null);
     if (!health?.ok) {
       showAuth("login");
@@ -2232,6 +2275,9 @@ function bindShell() {
 
   modalRoot().addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closeModal(); });
 
+  // شبكة أمان: أي نافذة فارغة عالقة تُغلق تلقائياً
+  setInterval(purgeStaleModals, 1200);
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       if (!modalRoot().hidden) closeModal();
@@ -2247,7 +2293,12 @@ function bindShell() {
     }
   });
 
-  window.addEventListener("popstate", () => syncFromHash());
+  window.addEventListener("popstate", (e) => {
+    // إن كنا قد دفعنا حالة عند فتح نافذة ⇒ الرجوع يعني «أغلق النافذة»
+    if (!modalRoot().hidden && e.state?.cwModal) return;
+    if (!modalRoot().hidden) { closeModal(true); return; }
+    syncFromHash();
+  });
   // تغيير الرابط مباشرة (رابط مُشارَك أو لصق في شريط العنوان) يجب أن ينقل بين الصفحات
   window.addEventListener("hashchange", () => syncFromHash());
 

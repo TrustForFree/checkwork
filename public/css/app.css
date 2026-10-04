@@ -860,3 +860,10 @@ table.tbl .actions { display: flex; gap: 5px; justify-content: flex-end; }
   text-underline-offset: 3px;
 }
 .linkish:hover { color: var(--brand-600); }
+
+/* نافذة بلا عنوان: لا تترك فراغاً غريباً */
+#modal-title.is-empty { color: var(--text-3); }
+.modal-body:empty::after {
+  content: "لا يوجد محتوى لعرضه.";
+  display: block; text-align: center; color: var(--text-3); font-size: 13px; padding: 18px 0;
+}

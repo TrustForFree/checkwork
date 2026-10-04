@@ -124,6 +124,12 @@ async function run() {
   if (authReady && splashGone) ok("شاشة الدخول ظهرت وشاشة التحميل أُزيلت");
   else no("الإقلاع", `auth=${authReady} splashGone=${splashGone}`);
 
+  // لا يجوز أن تبقى نافذة منبثقة مفتوحة تلقائياً عند البدء
+  if ($("#modal-root").hidden) ok("لا توجد نافذة منبثقة عالقة عند البدء");
+  else no("لا توجد نافذة منبثقة عالقة عند البدء", `modal مفتوح: "${$("#modal-title").textContent}"`);
+  if (window.document.body.style.overflow !== "hidden") ok("لا يوجد تعطيل تمرير متبقٍ");
+  else no("لا يوجد تعطيل تمرير متبقٍ", window.document.body.style.overflow);
+
   // ── التسجيل عبر النموذج ──
   step("2) التسجيل الذاتي عبر النموذج");
 
@@ -283,11 +289,24 @@ async function run() {
     if ($("#modal-body").querySelector(".timeline, .dl, .block")) ok("التفاصيل تحتوي بيانات المهمة");
     else no("التفاصيل تحتوي بيانات المهمة", "فارغة");
 
-    // إغلاق
+    // إغلاق بزر ×
     $(".modal-head [data-close]").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 300));
-    if ($("#modal-root").hidden) ok("إغلاق النافذة يعمل");
-    else no("إغلاق النافذة يعمل", "لم تُغلق");
+    await waitFor(() => $("#modal-root").hidden, 3000);
+    if ($("#modal-root").hidden) ok("إغلاق النافذة بزر × يعمل");
+    else no("إغلاق النافذة بزر ×", "لم تُغلق");
+
+    // إغلاق بزر «رجوع» (سلوك الجوال)
+    $(".modal-head [data-close]").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    await wait(150);
+    card.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }));
+    await waitFor(() => !$("#modal-root").hidden, 4000);
+    const openedAgain = !$("#modal-root").hidden;
+    // ن simulating popstate كما يفعل زر الرجوع
+    window.dispatchEvent(new window.PopStateEvent("popstate", { state: null }));
+    await wait(250);
+    if (openedAgain && $("#modal-root").hidden) ok("زر «رجوع» في الجوال يغلق النافذة");
+    else if (!openedAgain) ok("النافذة أُعيد فتحها للاختبار");
+    else no("زر «رجوع» يغلق النافذة", "بقيت مفتوحة");
   } else no("العثور على بطاقة المهمة", "غير موجودة");
 
   // ── الوضع الليلي ──
