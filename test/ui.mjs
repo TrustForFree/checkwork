@@ -21,7 +21,23 @@ const C = {
 };
 const ok = (n, x = "") => { pass++; console.log(`  ${C.g("✓")} ${n}${x ? C.d("  " + x) : ""}`); };
 const no = (n, d = "") => { fail++; failures.push(n + " — " + d); console.log(`  ${C.r("✗")} ${n}\n      ${C.r(d)}`); };
-const step = (n) => console.log(`\n${C.b(C.c("▌ " + n))}`);
+let PHASE = "init";
+const step = (n) => { PHASE = n; console.log(`\n${C.b(C.c("▌ " + n))}`); };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** ينتظر حتى يتحقق شرط أو تنتهي المهلة */
+async function waitFor(fn, timeoutMs = 12000, everyMs = 120) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try { if (fn()) return true; } catch { /* تجاهل */ }
+    if (Date.now() > deadline) return false;
+    await wait(everyMs);
+  }
+}
+
+/** ينتظر انتهاء التحميل (اختفاء الهياكل العظمية) */
+const settled = (window) => waitFor(() => window.document.querySelectorAll("#page-wrap .skel").length === 0
+  && window.document.querySelectorAll("#page-wrap .stat, #page-wrap .task, #page-wrap .todo, #page-wrap .empty, #page-wrap .card").length > 0);
 
 const errors = [];
 
@@ -63,6 +79,7 @@ async function run() {
   window.scrollTo = () => {};
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
 
+  const callLog = [];
   const realFetch = globalThis.fetch.bind(globalThis);
   window.fetch = async (url, init = {}) => {
     const abs = String(url).startsWith("http") ? String(url) : BASE + url;
@@ -70,6 +87,7 @@ async function run() {
     if (jar.size) h.cookie = [...jar].map(([k, v]) => `${k}=${v}`).join("; ");
     if (init.body && !h["content-type"]) h["content-type"] = "application/json";
     const res = await realFetch(abs, { ...init, headers: h });
+    callLog.push(`[${PHASE}] ${init.method || "GET"} ${String(url).replace(BASE, "")} -> ${res.status}`);
     for (const sc of res.headers.getSetCookie?.() || []) {
       const [pair] = sc.split(";");
       const i = pair.indexOf("=");
@@ -92,7 +110,7 @@ async function run() {
   scriptEl.textContent = appJs;
   window.document.body.appendChild(scriptEl);
 
-  await new Promise((r) => setTimeout(r, 900));
+  await wait(400);
 
   const $ = (s) => window.document.querySelector(s);
   const $$ = (s) => [...window.document.querySelectorAll(s)];
@@ -100,16 +118,11 @@ async function run() {
   if (errors.length === 0) ok("app.js يُحمَّل دون أخطاء وقت التشغيل");
   else no("app.js يُحمَّل دون أخطاء وقت التشغيل", errors.slice(0, 3).join(" | "));
 
-  // شاشة الدخول
-  // شاشة التحميل تُزال تلقائياً بعد الإقلاع (سلوك صحيح)
-  if ($("#splash") === null && $("#auth-page") && !$("#auth-page").hidden) ok("شاشة التحميل أُزيلت بعد الإقلاع");
-  else no("شاشة التحميل", `splash=${!!$("#splash")} auth=${!$("#auth-page").hidden}`);
-
-  // انتظار انتهاء الإقلاع
-  for (let i = 0; i < 40 && $("#auth-page").hidden; i++) await new Promise((r) => setTimeout(r, 250));
-  const authVisible = !$("#auth-page").hidden;
-  if (authVisible) ok("شاشة الدخول/التسجيل ظهرت بعد الإقلاع");
-  else no("شاشة الدخول/التسجيل ظهرت", `أخطاء: ${errors.slice(0, 2).join(" | ")}`);
+  // شاشة التحميل تُزال تلقائياً بعد الإقلاع، ثم تظهر شاشة الدخول
+  const authReady = await waitFor(() => !!$("#auth-page") && !$("#auth-page").hidden, 20000);
+  const splashGone = await waitFor(() => $("#splash") === null, 6000);
+  if (authReady && splashGone) ok("شاشة الدخول ظهرت وشاشة التحميل أُزيلت");
+  else no("الإقلاع", `auth=${authReady} splashGone=${splashGone}`);
 
   // ── التسجيل عبر النموذج ──
   step("2) التسجيل الذاتي عبر النموذج");
@@ -127,7 +140,7 @@ async function run() {
   $("#rg-pass2").value = PASS;
   rg.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
 
-  for (let i = 0; i < 60 && $("#app").hidden; i++) await new Promise((r) => setTimeout(r, 250));
+  await waitFor(() => !$("#app").hidden, 20000);
   if (!$("#app").hidden) {
     ok("التسجيل نجح وانتقل التطبيق إلى لوحة التحكم");
   } else {
@@ -152,7 +165,7 @@ async function run() {
   else no("زر مبدّل بيئات العمل موجود", "مفقود");
 
   // لوحة التحكم
-  for (let i = 0; i < 40 && !$$("#page-wrap .stat").length; i++) await new Promise((r) => setTimeout(r, 250));
+  await settled(window);
   const statCount = $$("#page-wrap .stat").length;
   if (statCount >= 4) ok("لوحة التحكم عرضت بطاقات الإحصاء", `${statCount} بطاقة`);
   else no("لوحة التحكم عرضت بطاقات", `${statCount}`);
@@ -174,9 +187,10 @@ async function run() {
     if (btn) btn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
     else window.history.replaceState(null, "", "#/" + view);
 
-    await new Promise((r) => setTimeout(r, 1100));
+    const ready = await settled(window);
     const wrap = $("#page-wrap");
-    const hasContent = wrap.querySelector(marker.split(", ")[0]) !== null || $$(".skel").length === 0 && wrap.children.length > 0;
+    const marker0 = marker.split(", ")[0];
+    const hasContent = ready && (wrap.querySelector(marker0) !== null || wrap.querySelector(".empty") !== null);
     const titleOk = $("#page-title").textContent.trim().length > 0;
     if (hasContent && titleOk && errors.length === 0) ok(`الصفحة «${view}» تُعرض بلا أخطاء`, $("#page-title").textContent);
     else no(`الصفحة «${view}» تُعرض`, `أخطاء: ${errors.slice(0, 2).join(" | ")}`);
@@ -188,13 +202,13 @@ async function run() {
   errors.length = 0;
   const todoBtn = $$(".sb-item").find((b) => b.dataset.view === "todos");
   todoBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 1200));
+  await settled(window);
 
   // زر «عنصر جديد» داخل بطاقة القوائم
   const addBtn = $$("#page-wrap button").find((b) => b.textContent.includes("عنصر جديد"));
   if (addBtn) {
     addBtn.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 500));
+    await waitFor(() => !$("#modal-root").hidden, 4000);
     if (!$("#modal-root").hidden) ok("نافذة «عنصر TODO جديد» فُتحت");
     else no("نافذة عنصر TODO فُتحت", "modal-root مخفي");
 
@@ -206,7 +220,11 @@ async function run() {
       if (sharedRadio) sharedRadio.checked = true;
       const submit = $("#modal-foot [data-submit]");
       submit.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-      await new Promise((r) => setTimeout(r, 1800));
+      // إشارة النجاح = إغلاق النافذة بعد نجاح الطلب
+      const closed = await waitFor(() => $("#modal-root").hidden, 8000);
+      if (!closed) no("إغلاق النافذة بعد الحفظ", "بقيت مفتوحة — قد فشل الطلب");
+      await settled(window);
+      await waitFor(() => $$("#page-wrap .todo").length > 0, 8000);
 
       const list = $$("#page-wrap .todo").map((t) => t.textContent);
       if (list.some((x) => x.includes("عنصر من اختبار الواجهة"))) ok("العنصر ظهر في القائمة");
@@ -223,11 +241,12 @@ async function run() {
 
   errors.length = 0;
   window.location.hash = "#/tasks";
-  await new Promise((r) => setTimeout(r, 1400));
+  await settled(window);
+  await waitFor(() => $$("#page-wrap button").some((b) => b.textContent.includes("مهمة جديدة")), 8000);
   const newTask = $$("#page-wrap button").find((b) => b.textContent.includes("مهمة جديدة"));
   if (newTask) {
     newTask.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 700));
+    await waitFor(() => $("#tf-title"), 4000);
     const t = $("#tf-title");
     if (t) {
       t.value = "مهمة من اختبار الواجهة";
@@ -237,7 +256,10 @@ async function run() {
       if (sel && sel.options.length) {
         sel.selectedIndex = 0;
         $$("#modal-foot [data-submit]")[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-        await new Promise((r) => setTimeout(r, 2000));
+        const closed = await waitFor(() => $("#modal-root").hidden, 8000);
+        if (!closed) no("إغلاق نافذة المهمة بعد الحفظ", "بقيت مفتوحة");
+        await settled(window);
+        await waitFor(() => $$("#page-wrap .task").length > 0, 8000);
         const cards = $$("#page-wrap .task-title").map((x) => x.textContent);
         if (cards.some((c) => c.includes("مهمة من اختبار الواجهة"))) ok("المهمة ظهرت في القائمة");
         else no("المهمة ظهرت في القائمة", JSON.stringify(cards).slice(0, 160));
@@ -252,7 +274,7 @@ async function run() {
   const card = $$("#page-wrap .task").find((t) => t.textContent.includes("مهمة من اختبار الواجهة"));
   if (card) {
     card.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }));
-    await new Promise((r) => setTimeout(r, 1400));
+    await waitFor(() => $("#modal-body").textContent.includes("مهمة من اختبار الواجهة"), 5000);
     const modalTitle = $("#modal-title").textContent;
     const body = $("#modal-body").textContent;
     if ($("#modal-root").hidden === false && body.includes("مهمة من اختبار الواجهة")) ok("نافذة التفاصيل فُتحت وتعرض المهمة", modalTitle);
@@ -278,7 +300,7 @@ async function run() {
   else no("تبديل المظهر", "لم يتغير");
 
   $("#btn-ws").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 400));
+  await waitFor(() => window.document.querySelectorAll("#ws-menu .ws-item").length > 0, 4000);
   const wsItems = $$("#ws-menu .ws-item").length;
   if (wsItems >= 2) ok("قائمة بيئات العمل تُعرض", `${wsItems} عنصر`);
   else no("قائمة بيئات العمل تُعرض", `${wsItems} عنصر`);
@@ -288,7 +310,7 @@ async function run() {
 
   errors.length = 0;
   $("#btn-logout").dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 500));
+  await waitFor(() => !$("#modal-root").hidden, 4000);
   if (!$("#modal-root").hidden) {
     const yes = $$("#modal-foot [data-act]").find((b) => b.dataset.act === "yes");
     if (yes) yes.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
@@ -298,7 +320,7 @@ async function run() {
     for (let i = 0; i < 20; i++) {
       me = await realFetch(BASE + "/api/auth/me", { headers: { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; ") } });
       if (me.status === 401) break;
-      await new Promise((r) => setTimeout(r, 250));
+      await wait(250);
     }
     if (me?.status === 401) ok("الجلسة أُبطلت بعد تسجيل الخروج");
     else no("الجلسة أُبطلت بعد تسجيل الخروج", `HTTP ${me?.status} | كوكي: ${[...jar.keys()].join(",")}`);
@@ -312,6 +334,9 @@ async function run() {
   if (fail) {
     console.log(C.r("\nالفاشلة:"));
     for (const f of failures) console.log("  • " + f);
+  }
+  if (process.env.LOG_CALLS) {
+    console.log(C.d("\n--- سجل الطلبات ---\n" + callLog.join("\n")));
   }
   const realErrors = errors.filter((e) => !/Not implemented|Could not parse CSS/i.test(e));
   if (realErrors.length) console.log(C.r("\nأخطاء وقت التشغيل المتبقية:\n" + realErrors.slice(0, 10).join("\n")));

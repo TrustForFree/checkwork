@@ -852,3 +852,11 @@ table.tbl .actions { display: flex; gap: 5px; justify-content: flex-end; }
 .logo-xs { display: grid; place-items: center; flex: none; font-weight: 750; color: #fff; }
 .logo-md { display: grid; place-items: center; flex: none; font-weight: 750; color: #fff; }
 .ws-switch .logo-sm { display: grid; place-items: center; flex: none; }
+
+.linkish {
+  background: none; border: 0; padding: 0;
+  color: var(--brand); font-weight: 700; font-size: inherit;
+  cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.linkish:hover { color: var(--brand-600); }

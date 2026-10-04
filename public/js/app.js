@@ -407,6 +407,11 @@ function bindAuth() {
   $("#tab-login").addEventListener("click", () => setAuthTab("login"));
   $("#tab-register").addEventListener("click", () => setAuthTab("register"));
 
+  // روابط التبديل بين التبويبين
+  $$("[data-goto]").forEach((btn) =>
+    btn.addEventListener("click", () => setAuthTab(btn.dataset.goto))
+  );
+
   const lf = $("#form-login");
   lf.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -421,7 +426,13 @@ function bindAuth() {
       await boot();
     } catch (err) {
       showAlert(lf, err.message);
-      if (err.status === 401 || err.status === 429) $("#lg-pass").value = "";
+      if (err.status === 401 || err.status === 429) {
+        $("#lg-pass").value = "";
+        const hint = $("#login-hint");
+        if (hint && err.status === 401) {
+          hint.textContent = "اسم المستخدم غير صحيح أو لم يُسجَّل بعد — جرّب تبويب «حساب جديد» لإنشاء حسابك.";
+        }
+      }
     } finally { busy(btn, false); }
   });
 
@@ -2179,6 +2190,12 @@ async function refreshCurrent() {
   await navigate(view, false);
 }
 
+/** يعكس رابط الصفحة الحالي في الحالة وينتقل إن اختلف */
+function syncFromHash() {
+  const v = location.hash.replace(/^#\/?/, "") || (state.workspace ? "dashboard" : "welcome");
+  if (state.user && v !== state.view) navigate(v, false);
+}
+
 const openSidebar = () => { $("#app").classList.add("sb-open"); $("#sb-backdrop").hidden = false; };
 const closeSidebar = () => { $("#app").classList.remove("sb-open"); $("#sb-backdrop").hidden = true; };
 
@@ -2230,10 +2247,9 @@ function bindShell() {
     }
   });
 
-  window.addEventListener("popstate", () => {
-    const v = location.hash.replace(/^#\/?/, "") || (state.workspace ? "dashboard" : "welcome");
-    if (v !== state.view) navigate(v, false);
-  });
+  window.addEventListener("popstate", () => syncFromHash());
+  // تغيير الرابط مباشرة (رابط مُشارَك أو لصق في شريط العنوان) يجب أن ينقل بين الصفحات
+  window.addEventListener("hashchange", () => syncFromHash());
 
   window.addEventListener("resize", () => { if (window.innerWidth > 900) closeSidebar(); });
 
